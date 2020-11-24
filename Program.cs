@@ -1,19 +1,67 @@
 ﻿using System;
-using System.Linq;
-using System.Threading;
+using System.Collections.Generic;
 using System.Net.Http;
-using System.IO;
+using System.Net.Mail;
 using System.Text;
 using HtmlAgilityPack;
+using Newtonsoft.Json;
+using System.IO;
 
 namespace GWWikiDailyReminder
 {
     class Program
     {
         public readonly static string siteUrl = "https://wiki.guildwars.com/wiki/Daily_activities";
+        public readonly static string wikiUrl = "https://wiki.guildwars.com/wiki/";
+
+        public static void SendDailyMail(string htmlMessage, Dictionary<string, string> parameters)
+        {
+            try
+            {
+                var mail = new MailMessage();
+
+                mail.From = new MailAddress(parameters["sender"]);
+                mail.To.Add(parameters["rcpt"]);
+                mail.Subject = $"GWW Daily reminder - {DateTime.Now.ToString("d MMMM yyyy")}";
+                mail.Body = htmlMessage;
+                mail.IsBodyHtml = true;
+
+                SmtpClient smtpServer = new SmtpClient(parameters["smtp"]);
+
+                smtpServer.Port = Int32.Parse(parameters["port"]);
+                smtpServer.Credentials = new System.Net.NetworkCredential(parameters["sender"], parameters["password"]);
+                smtpServer.EnableSsl = true;
+
+                smtpServer.Send(mail);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error while sending mail.\n" + e.ToString());
+            }
+        }
+
+        public static Dictionary<string, string> ReadParams(string path)
+        {
+            try 
+            {
+                string json = File.ReadAllText(path);
+                Dictionary<string, string> dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
+                return dict;
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine("Problem reading params.json file: " + e.ToString());
+                return new Dictionary<string, string>();
+            }
+        }
 
         static async System.Threading.Tasks.Task Main(string[] args)
         {
+            if(args.Length == 0)
+            {
+                throw new Exception("This program requires the path to the SMTP parameters json file.");
+            }
+
             var httpClient = new HttpClient();
             var html = await httpClient.GetStringAsync(siteUrl);
 
@@ -21,9 +69,16 @@ namespace GWWikiDailyReminder
             document.LoadHtml(html);
 
             var table = document.DocumentNode.SelectSingleNode("//table");
-            string th = table.SelectSingleNode(".//tr[.//th[contains(text(), 'Date')]]").InnerHtml.ToString();
-            string today = table.SelectSingleNode($".//tr[.//td[contains(text(), '{DateTime.Now.ToString("d MMMM yyyy")}')]]").InnerHtml.ToString();
-            string tomorrow = table.SelectSingleNode($".//tr[.//td[contains(text(), '{DateTime.Now.AddHours(24).ToString("d MMMM yyyy")}')]]").InnerHtml.ToString();
+
+            var sb = new StringBuilder("<table style=\"border: 1px solid black\"><thead>");
+            sb.AppendLine(table.SelectSingleNode(".//tr[.//th[contains(text(), 'Date')]]").InnerHtml.ToString());
+            sb.AppendLine("</thead><tbody>");
+            sb.AppendLine($"<tr>{table.SelectSingleNode($".//tr[.//td[contains(text(), '{DateTime.Now.ToString("d MMMM yyyy")}')]]").InnerHtml.ToString()}</tr>");
+            sb.AppendLine($"<tr>{table.SelectSingleNode($".//tr[.//td[contains(text(), '{DateTime.Now.AddHours(24).ToString("d MMMM yyyy")}')]]").InnerHtml.ToString()}</tr>");
+            sb.AppendLine("</tbody></table>");
+            sb.Replace("/wiki/", wikiUrl);
+
+            SendDailyMail(sb.ToString(), ReadParams(args[0]));
         }
     }
 }

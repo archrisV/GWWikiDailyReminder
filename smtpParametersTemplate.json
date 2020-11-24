@@ -1,0 +1,7 @@
+﻿{
+	"sender": "email@address.com",
+	"password": "password",
+	"rcpt": "email@address.com",
+	"smtp": "smtp.server.com",
+	"port": "465"
+}

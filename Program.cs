@@ -19,12 +19,11 @@ namespace GWWikiDailyReminder
 
             var document = new HtmlDocument();
             document.LoadHtml(html);
-            string today = DateTime.Now.ToString("d MMMM yyyy");
-            string tomorrow = DateTime.Now.AddHours(24).ToString("d MMMM yyyy");
 
             var table = document.DocumentNode.SelectSingleNode("//table");
-            Console.WriteLine(table.SelectSingleNode($".//tr[.//td[contains(text(), '{today}')]]").InnerText.ToString());
-            Console.WriteLine(table.SelectSingleNode($".//tr[.//td[contains(text(), '{tomorrow}')]]").InnerText.ToString());
+            string th = table.SelectSingleNode(".//tr[.//th[contains(text(), 'Date')]]").InnerHtml.ToString();
+            string today = table.SelectSingleNode($".//tr[.//td[contains(text(), '{DateTime.Now.ToString("d MMMM yyyy")}')]]").InnerHtml.ToString();
+            string tomorrow = table.SelectSingleNode($".//tr[.//td[contains(text(), '{DateTime.Now.AddHours(24).ToString("d MMMM yyyy")}')]]").InnerHtml.ToString();
         }
     }
 }

@@ -60,11 +60,18 @@ namespace GWWikiDailyReminder
 
         public static string GetWeeklyHTMLTable(HtmlNode table)
         {
-            var sb = new StringBuilder("<table style=\"border: 1px solid black\"><thead>");
+            var sb = new StringBuilder("<table style=\"border: 1px solid black; border-colapse: collapse;\"><thead>");
             //Extract table header
             sb.AppendLine(table.SelectSingleNode(".//tr[.//th[contains(text(), 'Week starting')]]").InnerHtml.ToString());
             sb.AppendLine("</thead><tbody>");
-            //Extract current week and the following week rows
+            //Stylize date format of current week and the following week columns
+            var row = table.SelectSingleNode($".//tr[3]/td[1]");
+            row.Attributes.Append("style");
+            row.SetAttributeValue("style", "border: 1px solid black");
+            row = table.SelectSingleNode($".//tr[4]/td[1]");
+            row.Attributes.Append("style");
+            row.SetAttributeValue("style", "border: 1px solid black");
+            //Append current week and the following week rows
             sb.AppendLine($"<tr>{table.SelectSingleNode($".//tr[3]").InnerHtml.ToString()}</tr>");
             sb.AppendLine($"<tr>{table.SelectSingleNode($".//tr[4]").InnerHtml.ToString()}</tr>");
             sb.AppendLine("</tbody></table>");
@@ -74,7 +81,7 @@ namespace GWWikiDailyReminder
 
         public static string GetDailyHTMLTable(HtmlNode table)
         {
-            var sb = new StringBuilder("<table style=\"border: 1px solid black\"><thead>");
+            var sb = new StringBuilder("<table style=\"border: 1px solid black; border-colapse: collapse;\"><thead>");
             //Extract table header
             sb.AppendLine(table.SelectSingleNode(".//tr[.//th[contains(text(), 'Date')]]").InnerHtml.ToString());
             sb.AppendLine("</thead><tbody>");
@@ -89,8 +96,7 @@ namespace GWWikiDailyReminder
         {
             sb.Replace("/wiki/", wikiURL);
             sb.Replace("<th>", "<th style=\"border: 1px solid black \">");
-            sb.Replace("<tr>", "<tr style=\"border: 1px solid black \">");
-            sb.Replace("<td>", "<td style=\"border: 1px solid black \">");
+            sb.Replace("<td style=\"text-align: right;\">", "<td style=\"border: 1px solid black\">");
             return sb.ToString();
         }
 
@@ -123,6 +129,7 @@ namespace GWWikiDailyReminder
             mailText.Append(GetWeeklyHTMLTable(table));
 
             SendDailyMail(mailText.ToString(), ReadParams(args[0]));
+            
         }
     }
 }

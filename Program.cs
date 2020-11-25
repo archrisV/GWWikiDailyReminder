@@ -19,6 +19,7 @@ namespace GWWikiDailyReminder
         {
             try
             {
+                //Create e-mail
                 var mail = new MailMessage();
 
                 mail.From = new MailAddress(parameters["sender"]);
@@ -27,6 +28,7 @@ namespace GWWikiDailyReminder
                 mail.Body = htmlMessage;
                 mail.IsBodyHtml = true;
 
+                //Setup smtp connection
                 SmtpClient smtpServer = new SmtpClient(parameters["smtp"]);
 
                 smtpServer.Port = Int32.Parse(parameters["port"]);
@@ -56,15 +58,39 @@ namespace GWWikiDailyReminder
             }
         }
 
+        public static string GetWeeklyHTMLTable(HtmlNode table)
+        {
+            var sb = new StringBuilder("<table style=\"border: 1px solid black\"><thead>");
+            //Extract table header
+            sb.AppendLine(table.SelectSingleNode(".//tr[.//th[contains(text(), 'Week starting')]]").InnerHtml.ToString());
+            sb.AppendLine("</thead><tbody>");
+            //Extract current week and the following week rows
+            sb.AppendLine($"<tr>{table.SelectSingleNode($".//tr[3]").InnerHtml.ToString()}</tr>");
+            sb.AppendLine($"<tr>{table.SelectSingleNode($".//tr[4]").InnerHtml.ToString()}</tr>");
+            sb.AppendLine("</tbody></table>");
+            return StyleTable(sb);
+        }
+
+
         public static string GetDailyHTMLTable(HtmlNode table)
         {
             var sb = new StringBuilder("<table style=\"border: 1px solid black\"><thead>");
+            //Extract table header
             sb.AppendLine(table.SelectSingleNode(".//tr[.//th[contains(text(), 'Date')]]").InnerHtml.ToString());
             sb.AppendLine("</thead><tbody>");
+            //Extract rows for today and tomorrow
             sb.AppendLine($"<tr>{table.SelectSingleNode($".//tr[.//td[contains(text(), '{DateTime.Now.ToString("d MMMM yyyy")}')]]").InnerHtml.ToString()}</tr>");
             sb.AppendLine($"<tr>{table.SelectSingleNode($".//tr[.//td[contains(text(), '{DateTime.Now.AddHours(24).ToString("d MMMM yyyy")}')]]").InnerHtml.ToString()}</tr>");
-            sb.AppendLine("</tbody></table>");
+            sb.AppendLine("</tbody></table><br>");
+            return StyleTable(sb);
+        }
+
+        public static string StyleTable(StringBuilder sb)
+        {
             sb.Replace("/wiki/", wikiURL);
+            sb.Replace("<th>", "<th style=\"border: 1px solid black \">");
+            sb.Replace("<tr>", "<tr style=\"border: 1px solid black \">");
+            sb.Replace("<td>", "<td style=\"border: 1px solid black \">");
             return sb.ToString();
         }
 
@@ -75,6 +101,9 @@ namespace GWWikiDailyReminder
                 throw new Exception("This program requires the path to the SMTP parameters json file.");
             }
 
+            var mailText = new StringBuilder();
+
+            //Get Daily Table
             var httpClient = new HttpClient();
             var html = await httpClient.GetStringAsync(dailiesSiteURL);
 
@@ -83,7 +112,17 @@ namespace GWWikiDailyReminder
 
             var table = document.DocumentNode.SelectSingleNode("//table");
 
-            SendDailyMail(GetDailyHTMLTable(table), ReadParams(args[0]));
+            mailText.Append(GetDailyHTMLTable(table));
+
+            //Get Weekly Table
+            html = await httpClient.GetStringAsync(weekliesSiteURL);
+            document.LoadHtml(html);
+
+            table = document.DocumentNode.SelectSingleNode("//table");
+
+            mailText.Append(GetWeeklyHTMLTable(table));
+
+            SendDailyMail(mailText.ToString(), ReadParams(args[0]));
         }
     }
 }

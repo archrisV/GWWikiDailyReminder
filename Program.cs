@@ -110,10 +110,16 @@ namespace GWWikiDailyReminder
                 throw new Exception("This program requires the path to the SMTP parameters json file.");
             }
 
-            var mailText = new StringBuilder();
+            var httpClient = new HttpClient();
+
+            //Check if wiki is alive
+            var checkResponse = await httpClient.GetAsync(wikiURL);
+            if(!checkResponse.IsSuccessStatusCode)
+            {
+                throw new Exception("Guild Wars Wiki is not available at the moment, try again later.");
+            }
 
             //Get Daily Table
-            var httpClient = new HttpClient();
             var html = await httpClient.GetStringAsync(dailiesSiteURL);
 
             var document = new HtmlDocument();
@@ -121,6 +127,7 @@ namespace GWWikiDailyReminder
 
             var table = document.DocumentNode.SelectSingleNode("//table");
 
+            var mailText = new StringBuilder();
             mailText.Append(GetDailyHTMLTable(table));
 
             //Get Weekly Table

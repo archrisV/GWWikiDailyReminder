@@ -65,19 +65,14 @@ namespace GWWikiDailyReminder
             sb.AppendLine(table.SelectSingleNode(".//tr[.//th[contains(text(), 'Week starting')]]").InnerHtml.ToString());
             sb.AppendLine("</thead><tbody>");
             //Stylize date format of current week and the following week columns
-            var row = table.SelectSingleNode($".//tr[3]/td[1]");
-            row.Attributes.Append("style");
-            row.SetAttributeValue("style", "border: 1px solid black");
-            row = table.SelectSingleNode($".//tr[4]/td[1]");
-            row.Attributes.Append("style");
-            row.SetAttributeValue("style", "border: 1px solid black");
+            table = StyleDate(table, 3);
+            table = StyleDate(table, 4);
             //Append current week and the following week rows
             sb.AppendLine($"<tr>{table.SelectSingleNode($".//tr[3]").InnerHtml.ToString()}</tr>");
             sb.AppendLine($"<tr>{table.SelectSingleNode($".//tr[4]").InnerHtml.ToString()}</tr>");
             sb.AppendLine("</tbody></table>");
             return StyleTable(sb);
         }
-
 
         public static string GetDailyHTMLTable(HtmlNode table)
         {
@@ -90,6 +85,14 @@ namespace GWWikiDailyReminder
             sb.AppendLine($"<tr>{table.SelectSingleNode($".//tr[.//td[contains(text(), '{DateTime.Now.AddHours(24).ToString("d MMMM yyyy")}')]]").InnerHtml.ToString()}</tr>");
             sb.AppendLine("</tbody></table><br>");
             return StyleTable(sb);
+        }
+
+        public static HtmlNode StyleDate(HtmlNode table, int rowNumber)
+        {
+            var row = table.SelectSingleNode($".//tr[{rowNumber}]/td[1]");
+            row.Attributes.Append("style");
+            row.SetAttributeValue("style", "border: 1px solid black");
+            return table;
         }
 
         public static string StyleTable(StringBuilder sb)
@@ -128,7 +131,7 @@ namespace GWWikiDailyReminder
 
             mailText.Append(GetWeeklyHTMLTable(table));
 
-            SendDailyMail(mailText.ToString(), ReadParams(args[0]));
+            SendDailyMail(mailText.ToString(), ReadParams(args[0])); 
             
         }
     }
